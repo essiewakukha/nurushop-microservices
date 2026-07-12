@@ -1,8 +1,8 @@
 import os
 import uuid
 import httpx
-from fastapi import FastAPI, HTTPException, Depends, Header
-from pydantic import BaseModel, EmailStr
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials   
 
 app = FastAPI(title="Nurushop Order service")
