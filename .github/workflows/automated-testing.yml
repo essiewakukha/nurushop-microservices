@@ -63,3 +63,40 @@ jobs:
         with:
           name: test-results-${{ matrix.service }}
           path: ${{ matrix.service }}/test-results.xml
+
+  integration-tests:
+    name: Integration & Smoke Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install requests pytest
+
+      - name: Build and start services
+        run: docker compose up --build -d
+
+      - name: Wait for services to be ready
+        run: python scripts/wait_for_services.py
+
+      - name: Run smoke tests
+        run: python tests/smoke/smoke_test.py
+
+      - name: Run integration tests
+        run: pytest tests/integration/ -v
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop services
+        if: always()
+        run: docker compose down
