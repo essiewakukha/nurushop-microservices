@@ -1,0 +1,4 @@
+#ignore venv files
+.venv/
+__pycache__/
+*.pyc
