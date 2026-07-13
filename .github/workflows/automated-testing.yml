@@ -168,21 +168,21 @@ jobs:
         run: docker compose build
 
       - name: Scan auth image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: nurushop-microservices-auth-service:latest
           severity: CRITICAL,HIGH
           exit-code: "1"
 
       - name: Scan order image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: nurushop-microservices-order-service:latest
           severity: CRITICAL,HIGH
           exit-code: "1"
 
       - name: Scan notification image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: nurushop-microservices-notification-service:latest
           severity: CRITICAL,HIGH
@@ -218,7 +218,7 @@ jobs:
         if: always()
         run: docker compose down
 
-        
+
   performance-tests:
     name: Performance Tests
     runs-on: ubuntu-latest
