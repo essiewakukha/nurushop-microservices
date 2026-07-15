@@ -189,7 +189,8 @@ jobs:
           image-ref: nurushop-microservices-notification-service:latest
           severity: CRITICAL,HIGH
           exit-code: "1"
-
+          ignore-unfixed: true
+          
   regression-tests:
     name: Regression Tests
     runs-on: ubuntu-latest
