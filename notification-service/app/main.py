@@ -30,7 +30,10 @@ def send_notification(notification: NotificationRequest):
     return record
 
 
-@app.get("/api/v1/notifications/{notification_id}")
+@app.get(
+    "/api/v1/notifications/{notification_id}",
+    responses={404: {"description": "Notification not found"}},
+)
 def get_notification(notification_id: str):
     record = notifications.get(notification_id)
     if not record:
