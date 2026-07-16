@@ -1,45 +1,48 @@
 import os
 import uuid
+
 import httpx
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials   
 
-app = FastAPI(title="Nurushop Order service")
+app = FastAPI(title="NuruShop Order Service")
 security = HTTPBearer()
 
-#service urls configured via environment variables and Docker Compose
+# Service URLs come from env vars so the same code works locally AND in Docker
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8000")
 NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://localhost:8002")
 
-orders: dict[str, dict] = {}  # order_id -> order details
+orders: dict[str, dict] = {}
 
 VALID_STATUSES = {"pending", "confirmed", "shipped", "delivered", "cancelled"}
 
-#class to represent an order
+
 class OrderRequest(BaseModel):
     product: str
     quantity: int
     price: float
 
+
 class StatusUpdate(BaseModel):
     status: str
 
 
-
-#dependency to validate the token with the auth service
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Verify the token with the auth service and return the associated email."""
-    try: 
+    """Call the auth service to validate the token. Returns the user's email."""
+    try:
         response = httpx.get(
-            f"{AUTH_SERVICE_URL}/api/v1/validate", headers={"Authorization": f"Bearer {credentials.credentials}"}, 
-            timeout=5.0
+            f"{AUTH_SERVICE_URL}/api/v1/validate",
+            headers={"Authorization": f"Bearer {credentials.credentials}"},
+            timeout=5,
         )
     except httpx.RequestError:
         raise HTTPException(status_code=503, detail="Auth service unavailable")
     if response.status_code != 200:
         raise HTTPException(status_code=401, detail="Invalid token")
-    return response.json().get("email")    
+    return response.json()["email"]
+
+
 def send_notification(order_id: str, email: str, message: str) -> None:
     """Notify the notification service. Failure to notify must not fail the order."""
     try:
@@ -52,7 +55,15 @@ def send_notification(order_id: str, email: str, message: str) -> None:
         pass  # notifications are best-effort
 
 
-@app.post("/api/v1/orders", status_code=201)
+@app.post(
+    "/api/v1/orders",
+    status_code=201,
+    responses={
+        400: {"description": "Malformed request body"},
+        401: {"description": "Invalid token"},
+        503: {"description": "Auth service unavailable"},
+    },
+)
 def create_order(order: OrderRequest, email: str = Depends(verify_token)):
     if order.quantity < 1:
         raise HTTPException(status_code=422, detail="Quantity must be at least 1")
@@ -74,7 +85,14 @@ def create_order(order: OrderRequest, email: str = Depends(verify_token)):
     return record
 
 
-@app.get("/api/v1/orders/{order_id}")
+@app.get(
+    "/api/v1/orders/{order_id}",
+    responses={
+        401: {"description": "Invalid token"},
+        404: {"description": "Order not found"},
+        503: {"description": "Auth service unavailable"},
+    },
+)
 def get_order(order_id: str, email: str = Depends(verify_token)):
     order = orders.get(order_id)
     if not order:
@@ -82,7 +100,15 @@ def get_order(order_id: str, email: str = Depends(verify_token)):
     return order
 
 
-@app.patch("/api/v1/orders/{order_id}")
+@app.patch(
+    "/api/v1/orders/{order_id}",
+    responses={
+        400: {"description": "Malformed request body"},
+        401: {"description": "Invalid token"},
+        404: {"description": "Order not found"},
+        503: {"description": "Auth service unavailable"},
+    },
+)
 def update_order_status(order_id: str, update: StatusUpdate, email: str = Depends(verify_token)):
     order = orders.get(order_id)
     if not order:
@@ -96,4 +122,4 @@ def update_order_status(order_id: str, update: StatusUpdate, email: str = Depend
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}      
+    return {"status": "healthy"}
