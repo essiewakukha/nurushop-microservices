@@ -14,7 +14,11 @@ class NotificationRequest(BaseModel):
     message: str
 
 
-@app.post("/api/v1/notifications", status_code=201)
+@app.post(
+    "/api/v1/notifications",
+    status_code=201,
+    responses={400: {"description": "Malformed request body"}},
+)
 def send_notification(notification: NotificationRequest):
     notification_id = str(uuid.uuid4())
     record = {
